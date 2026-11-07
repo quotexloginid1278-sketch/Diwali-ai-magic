@@ -30,11 +30,7 @@ const defaultDB = {
     offerDeadline: "2026-11-12T23:59:59",
     offerEnabled: true,
     pdfFilename: "diwali-ai-prompts-2026.pdf",
-    coverImage: "/uploads/default-cover.png",
-    gallery: [
-      { id: "1", type: "cover", url: "/uploads/default-cover.png", caption: "Main Ebook Cover" },
-      { id: "2", type: "sample", url: "/uploads/sample-1.png", caption: "Royal Diwali Portrait" }
-    ]
+    coverImage: "/uploads/default-cover.png"
   },
   admin: {
     username: "admin",
@@ -113,20 +109,69 @@ app.get('/api/admin/dashboard', (req, res) => {
   res.json({ stats: { totalOrders: db.orders.length }, orders: db.orders, settings: db.settings });
 });
 
+app.get('/admin', (req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Diwali AI Magic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white min-h-screen p-6">
+    <div class="max-w-xl mx-auto bg-neutral-900 border border-amber-500/30 p-8 rounded-3xl shadow-2xl mt-10">
+        <h1 class="text-2xl font-bold text-amber-400 mb-6 font-serif text-center">Admin Dashboard Login</h1>
+        <form onsubmit="login(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs text-amber-200 mb-1 font-semibold">Username</label>
+                <input type="text" id="user" value="admin" class="w-full bg-black border border-amber-500/30 rounded-xl px-4 py-3 text-white">
+            </div>
+            <div>
+                <label class="block text-xs text-amber-200 mb-1 font-semibold">Password</label>
+                <input type="password" id="pass" value="admin123" class="w-full bg-black border border-amber-500/30 rounded-xl px-4 py-3 text-white">
+            </div>
+            <button type="submit" class="w-full bg-amber-500 text-black font-bold py-3.5 rounded-xl shadow-lg">Login</button>
+        </form>
+        <div id="msg" class="mt-4 text-center text-sm text-red-400"></div>
+    </div>
+    <script>
+        async function login(e) {
+            e.preventDefault();
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: document.getElementById('user').value, password: document.getElementById('pass').value })
+            });
+            const data = await res.json();
+            if(data.success) {
+                alert('Login Successful!');
+                window.location.href = '/';
+            } else {
+                document.getElementById('msg').innerText = 'Invalid Login Credentials';
+            }
+        }
+    </script>
+</body>
+</html>`);
+});
+
 app.get('*', (req, res) => {
   res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diwali AI Magic</title>
+    <title>Diwali AI Magic - 2026 Special Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-black text-white min-h-screen flex flex-col items-center justify-center p-6">
-    <div class="bg-neutral-900 border border-amber-500/30 p-8 rounded-3xl max-w-lg text-center shadow-2xl">
-        <h1 class="text-3xl font-bold text-amber-400 mb-4 font-serif">DIWALI AI MAGIC</h1>
-        <p class="text-gray-300 mb-6">Website is successfully live and running! You can now configure your products and start selling.</p>
-        <a href="/admin" class="bg-amber-500 text-black font-bold px-6 py-3 rounded-xl inline-block">Go to Admin / Store</a>
+<body class="bg-black text-white min-h-screen flex flex-col items-center justify-center p-6 text-center">
+    <div class="bg-neutral-900 border border-amber-500/30 p-8 rounded-3xl max-w-lg shadow-2xl">
+        <h1 class="text-3xl font-bold text-amber-400 mb-3 font-serif">DIWALI AI MAGIC</h1>
+        <p class="text-amber-200 text-sm mb-2 font-semibold">Diwali AI Photo Prompts – 2026 Special Edition</p>
+        <p class="text-gray-400 text-xs mb-6">Price: ₹49 INR | Get 50+ Royal AI Photo Prompts</p>
+        <div class="space-y-3">
+            <a href="/admin" class="block w-full bg-amber-500 text-black font-bold py-3.5 rounded-xl shadow-lg text-sm">Go to Admin Login</a>
+        </div>
     </div>
 </body>
 </html>`);
