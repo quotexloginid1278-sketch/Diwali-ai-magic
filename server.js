@@ -1,7 +1,5 @@
 /**
  * DIWALI AI MAGIC - Complete Full-Stack Digital Product Store & Admin System
- * Product: Diwali AI Photo Prompts – 2026 Special Edition (₹49)
- * Features: Luxury UI, Swipeable Gallery, Manual UPI Payment & QR, Screenshot Upload, Full Admin Dashboard
  */
 
 const express = require('express');
@@ -23,7 +21,6 @@ if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const DB_FILE = path.join(DATA_DIR, 'database.json');
 
-// Initial Database Structure
 const defaultDB = {
   settings: {
     brandName: "DIWALI AI MAGIC",
@@ -48,7 +45,7 @@ const defaultDB = {
   },
   admin: {
     username: "admin",
-    passwordHash: bcrypt.hashSync("admin123", 10) // Default password: admin123 (Change in production)
+    passwordHash: bcrypt.hashSync("admin123", 10)
   },
   orders: [],
   reviews: [
@@ -83,7 +80,6 @@ app.use(session({
   cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
 }));
 
-// Multer for File Uploads (Screenshots & Admin Assets)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
@@ -93,7 +89,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
       cb(null, true);
@@ -104,8 +100,6 @@ const upload = multer({
 });
 
 // --- API ROUTES ---
-
-// Get Public Store Data & Settings
 app.get('/api/store/data', (req, res) => {
   const db = loadDB();
   const approvedReviews = db.reviews.filter(r => r.approved);
@@ -115,7 +109,6 @@ app.get('/api/store/data', (req, res) => {
   });
 });
 
-// Create Order (Checkout)
 app.post('/api/orders/create', (req, res) => {
   const { fullName, whatsappNumber, email } = req.body;
   if (!fullName || !whatsappNumber) {
@@ -135,8 +128,8 @@ app.post('/api/orders/create', (req, res) => {
     orderDate: new Date().toISOString(),
     screenshotPath: null,
     screenshotTime: null,
-    paymentStatus: 'AWAITING PAYMENT', // AWAITING PAYMENT, PROOF SUBMITTED, VERIFIED, REJECTED
-    deliveryStatus: 'PENDING', // PENDING, DELIVERED
+    paymentStatus: 'AWAITING PAYMENT',
+    deliveryStatus: 'PENDING',
     utrNumber: '',
     rejectionReason: '',
     deliveryDate: '',
@@ -149,7 +142,6 @@ app.post('/api/orders/create', (req, res) => {
   res.json({ success: true, orderId });
 });
 
-// Get Order Details
 app.get('/api/orders/:orderId', (req, res) => {
   const db = loadDB();
   const order = db.orders.find(o => o.orderId === req.params.orderId);
@@ -157,7 +149,6 @@ app.get('/api/orders/:orderId', (req, res) => {
   res.json({ order, settings: db.settings });
 });
 
-// Upload Payment Screenshot
 app.post('/api/orders/:orderId/upload-proof', upload.single('screenshot'), (req, res) => {
   const db = loadDB();
   const order = db.orders.find(o => o.orderId === req.params.orderId);
@@ -167,13 +158,12 @@ app.post('/api/orders/:orderId/upload-proof', upload.single('screenshot'), (req,
   order.screenshotPath = '/uploads/' + req.file.filename;
   order.screenshotTime = new Date().toISOString();
   order.paymentStatus = 'PROOF SUBMITTED';
-  order.rejectionReason = ''; // Clear previous rejection if resubmitting
+  order.rejectionReason = '';
 
   saveDB(db);
   res.json({ success: true, message: 'Payment proof submitted successfully.' });
 });
 
-// Submit Customer Review
 app.post('/api/reviews/submit', (req, res) => {
   const { name, rating, comment } = req.body;
   if (!name || !rating || !comment) {
@@ -187,7 +177,7 @@ app.post('/api/reviews/submit', (req, res) => {
     rating: parseInt(rating),
     comment,
     date: new Date().toISOString().split('T')[0],
-    approved: false // Requires admin approval
+    approved: false
   };
 
   db.reviews.push(newReview);
@@ -197,7 +187,6 @@ app.post('/api/reviews/submit', (req, res) => {
 });
 
 // --- ADMIN AUTH & API ---
-
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
   const db = loadDB();
@@ -223,7 +212,6 @@ function requireAdmin(req, res, next) {
   }
 }
 
-// Admin Dashboard Stats & Orders
 app.get('/api/admin/dashboard', requireAdmin, (req, res) => {
   const db = loadDB();
   const orders = db.orders;
@@ -238,10 +226,9 @@ app.get('/api/admin/dashboard', requireAdmin, (req, res) => {
     totalRevenue: orders.filter(o => o.paymentStatus === 'VERIFIED').reduce((sum, o) => sum + o.amount, 0)
   };
 
-  res.json({ stats, orders: orders.reverse(), settings: db.settings, reviews: db.reviews });
+  res.json({ stats, orders: [...orders].reverse(), settings: db.settings, reviews: db.reviews });
 });
 
-// Verify Payment
 app.post('/api/admin/orders/:orderId/verify', requireAdmin, (req, res) => {
   const { utrNumber } = req.body;
   const db = loadDB();
@@ -256,7 +243,6 @@ app.post('/api/admin/orders/:orderId/verify', requireAdmin, (req, res) => {
   res.json({ success: true, message: 'Payment verified successfully.' });
 });
 
-// Reject Payment
 app.post('/api/admin/orders/:orderId/reject', requireAdmin, (req, res) => {
   const { reason } = req.body;
   const db = loadDB();
@@ -270,7 +256,6 @@ app.post('/api/admin/orders/:orderId/reject', requireAdmin, (req, res) => {
   res.json({ success: true, message: 'Payment rejected.' });
 });
 
-// Mark Order as Delivered
 app.post('/api/admin/orders/:orderId/deliver', requireAdmin, (req, res) => {
   const { notes } = req.body;
   const db = loadDB();
@@ -285,7 +270,6 @@ app.post('/api/admin/orders/:orderId/deliver', requireAdmin, (req, res) => {
   res.json({ success: true, message: 'Order marked as delivered.' });
 });
 
-// Update Settings & Products
 app.post('/api/admin/settings', requireAdmin, upload.fields([
   { name: 'qrCode', maxCount: 1 },
   { name: 'coverImage', maxCount: 1 },
@@ -294,7 +278,6 @@ app.post('/api/admin/settings', requireAdmin, upload.fields([
   const db = loadDB();
   const body = req.body;
 
-  // Update text settings if provided
   if (body.upiId) db.settings.upiId = body.upiId;
   if (body.payeeName) db.settings.payeeName = body.payeeName;
   if (body.whatsappNumber) db.settings.whatsappNumber = body.whatsappNumber;
@@ -303,7 +286,6 @@ app.post('/api/admin/settings', requireAdmin, upload.fields([
   if (body.offerDeadline) db.settings.offerDeadline = body.offerDeadline;
   if (body.offerEnabled !== undefined) db.settings.offerEnabled = body.offerEnabled === 'true';
 
-  // Handle file uploads
   if (req.files) {
     if (req.files['qrCode']) {
       db.settings.qrCodeImage = '/uploads/' + req.files['qrCode'][0].filename;
@@ -320,27 +302,7 @@ app.post('/api/admin/settings', requireAdmin, upload.fields([
   res.json({ success: true, settings: db.settings });
 });
 
-// Moderate Reviews
-app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
-  const { approved } = req.body;
-  const db = loadDB();
-  const review = db.reviews.find(r => r.id === req.params.reviewId);
-  if (!review) return res.status(404).json({ error: 'Review not found.' });
-
-  review.approved = approved;
-  saveDB(db);
-  res.json({ success: true });
-});
-
-// Delete Review
-app.delete('/api/admin/reviews/:reviewId', requireAdmin, (req, res) => {
-  const db = loadDB();
-  db.reviews = db.reviews.filter(r => r.id !== req.params.reviewId);
-  saveDB(db);
-  res.json({ success: true });
-});
-
-// --- FRONTEND SINGLE PAGE APP (HTML/CSS/JS) ---
+// --- FRONTEND SINGLE PAGE APP ---
 app.get('*', (req, res) => {
   res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -388,7 +350,6 @@ app.get('*', (req, res) => {
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-luxury-gold selection:text-black">
 
-    <!-- Navbar -->
     <header class="sticky top-0 z-50 glass-card border-b border-luxury-gold/20 py-4 px-6">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('home')">
@@ -409,12 +370,8 @@ app.get('*', (req, res) => {
         </div>
     </header>
 
-    <!-- Main Dynamic Content Container -->
-    <main id="app" class="flex-grow">
-        <!-- Loaded dynamically via JavaScript -->
-    </main>
+    <main id="app" class="flex-grow"></main>
 
-    <!-- Footer -->
     <footer class="bg-luxury-dark border-t border-luxury-gold/20 py-12 px-6 mt-20">
         <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
@@ -446,14 +403,10 @@ app.get('*', (req, res) => {
             </div>
         </div>
         <div class="max-w-7xl mx-auto pt-8 border-t border-gray-800 text-center text-xs text-gray-500">
-            &copy; 2026 DIWALI AI MAGIC. All rights reserved. Designed for Royal Festivities.
+            &copy; 2026 DIWALI AI MAGIC. All rights reserved.
         </div>
     </footer>
 
-    <!-- Modals (Track Order, Admin, Policies) -->
-    <div id="modalContainer"></div>
-
-    <!-- JavaScript Application Logic -->
     <script>
         let storeData = null;
         let currentOrderId = null;
@@ -479,17 +432,39 @@ app.get('*', (req, res) => {
             else if (view === 'admin') renderAdmin();
         }
 
-        // --- HOMEPAGE RENDERER ---
         function renderHome() {
             if (!storeData) return;
             const s = storeData.settings;
             const reviews = storeData.reviews;
 
-            let galleryHtml = s.gallery.map((img, idx) => `
-                <div class="flex-shrink-0 w-full sm:w-[450px] h-[350px] sm:h-[420px] rounded-2xl overflow-hidden glass-card p-2 relative cursor-pointer group" onclick="openLightbox('${img.url}', '${img.caption}')">
-                    <img src="${img.url}" alt="${img.caption}" class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition duration-500">
+            let galleryHtml = s.gallery.map((img, idx) => \`
+                <div class="flex-shrink-0 w-full sm:w-[450px] h-[350px] sm:h-[420px] rounded-2xl overflow-hidden glass-card p-2 relative cursor-pointer group" onclick="openLightbox('\${img.url}', '\${img.caption}')">
+                    <img src="\${img.url}" alt="\${img.caption}" class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition duration-500">
                     <div class="absolute bottom-4 left-4 right-4 bg-black/70 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-semibold text-luxury-goldLight border border-luxury-gold/20">
-                        ${img.caption} ${idx === 0 ? '<span class="float-right bg-luxury-gold text-black px-2 py-0.5 rounded text-[10px] font-bold">EBOOK COVER</span>' : ''}
+                        \${img.caption} \${idx === 0 ? '<span class="float-right bg-luxury-gold text-black px-2 py-0.5 rounded text-[10px] font-bold">EBOOK COVER</span>' : ''}
                     </div>
                 </div>
-         
+            \`).join('');
+
+            let reviewsHtml = reviews.length > 0 ? reviews.map(r => \`
+                <div class="glass-card p-6 rounded-2xl border border-luxury-gold/20 flex flex-col justify-between">
+                    <div>
+                        <div class="flex text-amber-400 mb-3 text-sm">
+                            \${'<i class="fa-solid fa-star"></i>'.repeat(r.rating)}
+                        </div>
+                        <p class="text-gray-300 text-sm mb-4">"\${r.comment}"</p>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-luxury-goldLight border-t border-gray-800 pt-3">
+                        <span class="font-semibold text-white">\${r.name}</span>
+                        <span>Verified Customer</span>
+                    </div>
+                </div>
+            \`).join('') : '<p class="text-gray-500 text-center col-span-full py-8">No customer reviews published yet.</p>';
+
+            document.getElementById('app').innerHTML = \`
+                <section class="relative py-16 sm:py-24 px-6 overflow-hidden bg-gradient-to-b from-luxury-dark via-luxury-black to-luxury-dark">
+                    <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#D4AF37_1px,transparent_1px)] [background-size:24px_24px]"></div>
+                    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+                        <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+                            <div class="inline-flex items-center gap-2 bg-luxury-maroon/60 border border-luxury-gold/30 px-4 py-1.5 rounded-full text-xs font-semibold text-luxury-goldLight tracking-wider uppercase shadow-inner">
+           
